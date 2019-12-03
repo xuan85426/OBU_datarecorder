@@ -2,6 +2,7 @@ package com.example.obu_v2;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -19,6 +20,7 @@ import android.icu.util.Calendar;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -30,12 +32,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
@@ -59,19 +64,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor gyro;
 
     private Calendar rightNow;
-    // Old version
-    private String gps_data;
-    private String accelerometers_data;
-    private String gyroscopes_data;
-    private String return_data;
-
-    /*
-    private FileOutputStream gps_output = null;
-    private FileOutputStream sensor_output = null;
-    private FileOutputStream gyroscopes_output = null;
-     */
-
-//    private FileInputStream test = null;
 
 
     @Override
@@ -91,23 +83,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         history_acc_data.setMovementMethod(new ScrollingMovementMethod());
         history_gps_data.setMovementMethod(new ScrollingMovementMethod());
         history_gyro_data.setMovementMethod(new ScrollingMovementMethod());
-
-        // file open
-        /*
-        try {
-            gps_output = openFileOutput("gps.txt", Context.MODE_PRIVATE);
-            sensor_output = openFileOutput("accelerometers.txt", Context.MODE_PRIVATE);
-            gyroscopes_output = openFileOutput("gyroscopes.txt", Context.MODE_PRIVATE);
-
-            gps_output.write("GPS\n".getBytes());
-            sensor_output.write("Accelerometers\n".getBytes());
-            gyroscopes_output.write("Gyroscopes\n".getBytes());
-
-            Toast.makeText(MainActivity.this, "File open!", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-        }
-         */
 
         // get GPS permission
         if(!lc.isProviderEnabled(LocationManager.GPS_PROVIDER)){
@@ -136,38 +111,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         button_copy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                StringBuffer data = new StringBuffer();
-                /*
-                try {
-                    test = new FileInputStream("gps.txt");
-                    BufferedReader reader = new BufferedReader( new InputStreamReader(test, "utf-8"));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        Toast.makeText(MainActivity.this, line, Toast.LENGTH_SHORT).show();
-                        break;
-                    }
-                }catch (Exception e){
-                    Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-                }
-                 */
-                // Old version using clipboard
-//                return_data += "GPS\n" + gps_data + "\nACCELEROMETERS\n" + accelerometers_data + "\nGYROSCOPES\n" + gyroscopes_data;
-//                ClipboardManager myClipboard = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-//                ClipData myClip = ClipData.newPlainText("text", return_data);
-//                if(myClipboard!= null)
-//                    myClipboard.setPrimaryClip(myClip);
-//                Toast.makeText(MainActivity.this, "Copy!", Toast.LENGTH_SHORT).show();
-                Intent i = new Intent(Intent.ACTION_SEND);
-                i.setType("message/rfc822");
-                i.putExtra(Intent.EXTRA_EMAIL, new String[]{"ne6080156@ns.ncku.edu.tw"});
-                i.putExtra(Intent.EXTRA_SUBJECT, "Experiment outcome");
-                i.putExtra(Intent.EXTRA_TEXT, history_gps_data.getText() + "\n" +
-                        history_acc_data.getText() + "\n" + history_gyro_data.getText());
-                try{
-                    startActivity(Intent.createChooser(i, "Send mail..."));
-                }catch (Exception e){
-                    Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT);
-                }
+                sendEmailWithFile();
             }
         });
 
@@ -178,14 +122,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void onClick(View v) {
                 String temp = (String) button_start.getText();
                 if(temp.equals("Start")){
-                    // init strings
-                    // Old version
-                    gps_data = "";
-                    accelerometers_data = "";
-                    gyroscopes_data = "";
-                    return_data = "";
-
-
+                    // init file
+                    createEmptyFile();
                     // register sensor
                     sm = (SensorManager) getSystemService(SENSOR_SERVICE);
                     acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -245,18 +183,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy(){
         super.onDestroy();
-        //file close
-        /*
-        try {
-            gps_output.close();
-            sensor_output.close();
-            gyroscopes_output.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-         */
-
     }
     @Override
     // sensor function
@@ -269,17 +195,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 String.valueOf(event.values[1]) + " " +String.valueOf(event.values[2]) + "\n";
         if(event.sensor.equals(acc)){
             accelerometers.setText("Accelerometers\n" + values);
-            //Old version Q: String may full
-//            accelerometers_data += rightNow.getTimeInMillis() + String.valueOf(event.values[0]) + " " +
-//                    String.valueOf(event.values[1]) + " " +String.valueOf(event.values[2]) + "\n";
             history_acc_data.append(temp);
+            writeToFile(temp, "acc.txt");
         }
         if(event.sensor.equals(gyro)){
             gyroscopes.setText("Gyroscopes\n" + values);
-            // Old version Q: String may full
-//            gyroscopes_data += rightNow.getTimeInMillis() + String.valueOf(event.values[0]) + " " +
-//                    String.valueOf(event.values[1]) + " " +String.valueOf(event.values[2]) + "\n";
             history_gyro_data.append(temp);
+            writeToFile(temp, "gyro.txt");
         }
     }
     public void onAccuracyChanged(Sensor sensor, int accuracy){ } //unchanged
@@ -294,14 +216,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 lng = current.getLongitude();
                 speed = current.getSpeed();
                 String temp = current.getTime() + " " + lat + " " + lng + " " + speed + "\n";
-                // Toast.makeText(MainActivity.this, "location changed", Toast.LENGTH_SHORT).show();
                 // time format: Return the UTC time of this fix, in milliseconds since January 1, 1970.
                 current_gps.setText("Current information: \n時間: " + rightNow.getTimeInMillis() +
                         "\n經度: "+ lat + "\n緯度: " + lng + "\n速度: " + speed);
                 history_gps_data.append(temp);
-                // Old version Q: String may full
-//                gps_data += rightNow.getTimeInMillis() + " " + lat + " " + lng + " " + speed + "\n";
-
+                // write file
+                writeToFile(temp, "gps.txt");
             }
         }
         public void onProviderDisabled(String provider){}
@@ -309,4 +229,73 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void onStatusChanged(String provider, int status, Bundle extras){}
     }
 
+    private void createEmptyFile(){
+        try {
+            OutputStreamWriter cleaning1 = new OutputStreamWriter(this.openFileOutput("gps.txt", Context.MODE_PRIVATE));
+            cleaning1.write("");
+            cleaning1.close();
+            OutputStreamWriter cleaning2 = new OutputStreamWriter(this.openFileOutput("acc.txt", Context.MODE_PRIVATE));
+            cleaning2.write("");
+            cleaning2.close();
+            OutputStreamWriter cleaning3 = new OutputStreamWriter(this.openFileOutput("gyro.txt", Context.MODE_PRIVATE));
+            cleaning3.write("");
+            cleaning3.close();
+
+        } catch (Exception e){
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
+    // write file
+    private void writeToFile(String data, String filename){
+        try{
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(this.openFileOutput(filename, Context.MODE_APPEND));
+            outputStreamWriter.write(data);
+            outputStreamWriter.close();
+        } catch (IOException e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String readFromFile(String filename){
+        String ret = "";
+        try {
+            InputStream inputStream = this.openFileInput(filename);
+            if(inputStream != null){
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+                while((receiveString = bufferedReader.readLine()) != null){
+                    stringBuilder.append(receiveString);
+                }
+                inputStream.close();
+                ret = stringBuilder.toString();
+            }
+        }catch (Exception e){
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+        return ret;
+    }
+
+    private void sendEmailWithFile(){
+        File gps_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gps.txt");
+        File acc_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "acc.txt");
+        File gyro_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gyro.txt");
+        Uri path1 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gps_filelocation);
+        Uri path2 = FileProvider.getUriForFile(this, getPackageName() + ".provider", acc_filelocation);
+        Uri path3 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gyro_filelocation);
+        Intent i = new Intent(Intent.ACTION_SEND);
+        i.setType("vnd.android.cursor.dir/email");
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"ne6080156@ns.ncku.edu.tw"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "Experiment outcome");
+        i.putExtra(Intent.EXTRA_STREAM, path1);
+        i.putExtra(Intent.EXTRA_STREAM, path2);
+        i.putExtra(Intent.EXTRA_STREAM, path3);
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try{
+            startActivity(Intent.createChooser(i, "Send mail..."));
+        }catch (Exception e){
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
 }
