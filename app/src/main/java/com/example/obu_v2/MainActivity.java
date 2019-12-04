@@ -2,10 +2,13 @@ package com.example.obu_v2;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -26,24 +29,30 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.text.method.ScrollingMovementMethod;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
+    private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 101;
     private final int minTime = 0;
     private final float minDistance = 0;
@@ -64,7 +73,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Sensor gyro;
 
     private Calendar rightNow;
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE" };
 
+
+    public static void verifyStoragePermissions(Activity activity) {
+
+        try {
+            int permission = ActivityCompat.checkSelfPermission(activity,
+                    "android.permission.WRITE_EXTERNAL_STORAGE");
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE,REQUEST_EXTERNAL_STORAGE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,6 +109,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         history_acc_data.setMovementMethod(new ScrollingMovementMethod());
         history_gps_data.setMovementMethod(new ScrollingMovementMethod());
         history_gyro_data.setMovementMethod(new ScrollingMovementMethod());
+
 
         // get GPS permission
         if(!lc.isProviderEnabled(LocationManager.GPS_PROVIDER)){
@@ -108,6 +135,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
 
+
+        verifyStoragePermissions( this );
+
+        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        File dir = new File(root + File.separator + "Experiment");
+        if(dir.mkdirs()){
+            Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
+        }
+        else{
+            Toast.makeText(MainActivity.this, root, Toast.LENGTH_SHORT).show();
+        }
+
+        try{
+            File data_output = new File(root + File.separator + "test.txt");
+            if(!data_output.exists()){
+                data_output.createNewFile();
+            }
+            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(data_output, true));
+            bufferedWriter.write("test\n");
+            bufferedWriter.close();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+
+
         button_copy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -122,8 +174,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             public void onClick(View v) {
                 String temp = (String) button_start.getText();
                 if(temp.equals("Start")){
-                    // init file
-                    createEmptyFile();
                     // register sensor
                     sm = (SensorManager) getSystemService(SENSOR_SERVICE);
                     acc = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -187,12 +237,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     // sensor function
     public void onSensorChanged(SensorEvent event){
-        String values = "X-axis: " + String.valueOf(event.values[0]) + "\n" +
-                "Y-axis: " + String.valueOf(event.values[1]) + "\n" +
-                "Z-axis: " + String.valueOf(event.values[2]);
+        String values = "X-axis: " + event.values[0] + "\n" +
+                "Y-axis: " + event.values[1] + "\n" +
+                "Z-axis: " + event.values[2];
         rightNow = Calendar.getInstance();
-        String temp = rightNow.getTimeInMillis()+ " " + String.valueOf(event.values[0]) + " " +
-                String.valueOf(event.values[1]) + " " +String.valueOf(event.values[2]) + "\n";
+        String temp = rightNow.getTimeInMillis()+ " " + event.values[0] + " " + event.values[1] + " " + event.values[2] + "\n";
         if(event.sensor.equals(acc)){
             accelerometers.setText("Accelerometers\n" + values);
             history_acc_data.append(temp);
@@ -229,34 +278,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void onStatusChanged(String provider, int status, Bundle extras){}
     }
 
-    private void createEmptyFile(){
-        try {
-            OutputStreamWriter cleaning1 = new OutputStreamWriter(this.openFileOutput("gps.txt", Context.MODE_PRIVATE));
-            cleaning1.write("");
-            cleaning1.close();
-            OutputStreamWriter cleaning2 = new OutputStreamWriter(this.openFileOutput("acc.txt", Context.MODE_PRIVATE));
-            cleaning2.write("");
-            cleaning2.close();
-            OutputStreamWriter cleaning3 = new OutputStreamWriter(this.openFileOutput("gyro.txt", Context.MODE_PRIVATE));
-            cleaning3.write("");
-            cleaning3.close();
-
-        } catch (Exception e){
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-        }
-    }
     // write file
     private void writeToFile(String data, String filename){
-        try{
-            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(this.openFileOutput(filename, Context.MODE_APPEND));
-            outputStreamWriter.write(data);
-            outputStreamWriter.close();
-        } catch (IOException e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        if(checkPermission()){
+//            try{
+//                File data_output = new File(dir.getAbsolutePath() + File.separator + filename);
+//                BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(data_output, true));
+//                bufferedWriter.write(data);
+//                bufferedWriter.close();
+//            } catch (Exception e) {
+//                Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+//            }
+        }
+        else{
+            requestPermission(); // Code for permission
         }
     }
 
-    private String readFromFile(String filename){
+    private boolean checkPermission() {
+        int result = ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        if (result == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private void requestPermission() {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            Toast.makeText(MainActivity.this, "Write External Storage permission allows us to create files. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
+        } else {
+            ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private String readFromFile(String filename){ // unused
         String ret = "";
         try {
             InputStream inputStream = this.openFileInput(filename);
@@ -278,24 +334,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void sendEmailWithFile(){
-        File gps_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gps.txt");
-        File acc_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "acc.txt");
-        File gyro_filelocation = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gyro.txt");
-        Uri path1 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gps_filelocation);
-        Uri path2 = FileProvider.getUriForFile(this, getPackageName() + ".provider", acc_filelocation);
-        Uri path3 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gyro_filelocation);
+        File gps_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gps.txt");
+        File acc_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "acc.txt");
+        File gyro_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gyro.txt");
+        Uri path1 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gps_file);
+        Uri path2 = FileProvider.getUriForFile(this, getPackageName() + ".provider", acc_file);
+        Uri path3 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gyro_file);
         Intent i = new Intent(Intent.ACTION_SEND);
         i.setType("vnd.android.cursor.dir/email");
         i.putExtra(Intent.EXTRA_EMAIL, new String[]{"ne6080156@ns.ncku.edu.tw"});
         i.putExtra(Intent.EXTRA_SUBJECT, "Experiment outcome");
         i.putExtra(Intent.EXTRA_STREAM, path1);
-        i.putExtra(Intent.EXTRA_STREAM, path2);
-        i.putExtra(Intent.EXTRA_STREAM, path3);
+//        i.putExtra(Intent.EXTRA_STREAM, path2);
+//        i.putExtra(Intent.EXTRA_STREAM, path3);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         try{
-            startActivity(Intent.createChooser(i, "Send mail..."));
+            this.startActivity(Intent.createChooser(i, "Send mail..."));
         }catch (Exception e){
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, path1.toString(), Toast.LENGTH_SHORT).show();
         }
     }
 }
