@@ -49,10 +49,11 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
-    private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 101;
     private final int minTime = 0;
     private final float minDistance = 0;
@@ -71,6 +72,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private SensorManager sm;
     private Sensor acc;
     private Sensor gyro;
+
+    private String filePath_gps;
+    private String filePath_acc;
+    private String filePath_gyro;
+
+    private File output_gps;
+    private File output_acc;
+    private File output_gyro;
 
     private Calendar rightNow;
     private static final int REQUEST_EXTERNAL_STORAGE = 1;
@@ -127,38 +136,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             })
                     .setNegativeButton("不啟用", null).create().show();
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                checkSelfPermission(
-                        Manifest.permission.ACCESS_FINE_LOCATION) !=
-                        PackageManager.PERMISSION_GRANTED){
-            requestPermissions(new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
         }
 
 
         verifyStoragePermissions( this );
 
-        String root = Environment.getExternalStorageDirectory().getAbsolutePath();
+        // dir & file init
+        String root = getExternalFilesDir(null).toString();
         File dir = new File(root + File.separator + "Experiment");
-        if(dir.mkdirs()){
-            Toast.makeText(MainActivity.this, "success", Toast.LENGTH_SHORT).show();
+        if(!dir.mkdirs() && !dir.exists()){
+            Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
         }
-        else{
-            Toast.makeText(MainActivity.this, root, Toast.LENGTH_SHORT).show();
-        }
+        filePath_gps = dir + File.separator + "gps.txt";
+        filePath_acc = dir + File.separator + "acc.txt";
+        filePath_gyro = dir + File.separator + "gyro.txt";
 
         try{
-            File data_output = new File(root + File.separator + "test.txt");
-            if(!data_output.exists()){
-                data_output.createNewFile();
-            }
-            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(data_output, true));
-            bufferedWriter.write("test\n");
-            bufferedWriter.close();
+            output_acc = new File(filePath_acc);
+            output_gps = new File(filePath_gps);
+            output_gyro = new File(filePath_gyro);
+            output_acc.createNewFile();
+            output_gps.createNewFile();
+            output_gyro.createNewFile();
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
         }
-
 
         button_copy.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -233,6 +237,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy(){
         super.onDestroy();
+        output_gps.delete();
+        output_acc.delete();
+        output_gyro.delete();
     }
     @Override
     // sensor function
@@ -245,16 +252,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if(event.sensor.equals(acc)){
             accelerometers.setText("Accelerometers\n" + values);
             history_acc_data.append(temp);
-            writeToFile(temp, "acc.txt");
+            writeToFile(temp, "acc");
         }
         if(event.sensor.equals(gyro)){
             gyroscopes.setText("Gyroscopes\n" + values);
             history_gyro_data.append(temp);
-            writeToFile(temp, "gyro.txt");
+            writeToFile(temp, "gyro");
         }
     }
     public void onAccuracyChanged(Sensor sensor, int accuracy){ } //unchanged
-    ///
+
     private class MyLocationListener implements LocationListener {
         @SuppressLint("SetTextI18n")
         public void onLocationChanged(Location current){
@@ -263,14 +270,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if(current != null){
                 lat = current.getLatitude();
                 lng = current.getLongitude();
-                speed = current.getSpeed();
+                speed = current.getSpeed() * 3.6;
                 String temp = current.getTime() + " " + lat + " " + lng + " " + speed + "\n";
                 // time format: Return the UTC time of this fix, in milliseconds since January 1, 1970.
                 current_gps.setText("Current information: \n時間: " + rightNow.getTimeInMillis() +
                         "\n經度: "+ lat + "\n緯度: " + lng + "\n速度: " + speed);
                 history_gps_data.append(temp);
                 // write file
-                writeToFile(temp, "gps.txt");
+                writeToFile(temp, "gps");
             }
         }
         public void onProviderDisabled(String provider){}
@@ -280,35 +287,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     // write file
     private void writeToFile(String data, String filename){
-        if(checkPermission()){
-//            try{
-//                File data_output = new File(dir.getAbsolutePath() + File.separator + filename);
-//                BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(data_output, true));
-//                bufferedWriter.write(data);
-//                bufferedWriter.close();
-//            } catch (Exception e) {
-//                Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-//            }
-        }
-        else{
-            requestPermission(); // Code for permission
-        }
-    }
-
-    private boolean checkPermission() {
-        int result = ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        if (result == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private void requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            Toast.makeText(MainActivity.this, "Write External Storage permission allows us to create files. Please allow this permission in App Settings.", Toast.LENGTH_LONG).show();
-        } else {
-            ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+        BufferedWriter bufferedWriter;
+        try{
+            switch (filename){
+                case "gps":
+                    bufferedWriter = new BufferedWriter(new FileWriter(output_gps, true));
+                    bufferedWriter.write(data);
+                    bufferedWriter.close();
+                    break;
+                case "gyro":
+                    bufferedWriter = new BufferedWriter(new FileWriter(output_gyro, true));
+                    bufferedWriter.write(data);
+                    bufferedWriter.close();
+                    break;
+                case "acc":
+                    bufferedWriter = new BufferedWriter(new FileWriter(output_acc, true));
+                    bufferedWriter.write(data);
+                    bufferedWriter.close();
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -334,24 +335,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void sendEmailWithFile(){
-        File gps_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gps.txt");
-        File acc_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "acc.txt");
-        File gyro_file = new File(Environment.getExternalStorageDirectory().getAbsolutePath(), "gyro.txt");
-        Uri path1 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gps_file);
-        Uri path2 = FileProvider.getUriForFile(this, getPackageName() + ".provider", acc_file);
-        Uri path3 = FileProvider.getUriForFile(this, getPackageName() + ".provider", gyro_file);
-        Intent i = new Intent(Intent.ACTION_SEND);
+        ArrayList<Uri> uris = new ArrayList<>();
+        List<Uri> filePaths = Arrays.asList(FileProvider.getUriForFile(this, getPackageName() + ".provider", output_gps),
+                FileProvider.getUriForFile(this, getPackageName() + ".provider", output_acc),
+                FileProvider.getUriForFile(this, getPackageName() + ".provider", output_gyro));
+        for(Uri uri: filePaths)
+            uris.add(uri);
+        Intent i = new Intent(Intent.ACTION_SEND_MULTIPLE);
         i.setType("vnd.android.cursor.dir/email");
-        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"ne6080156@ns.ncku.edu.tw"});
-        i.putExtra(Intent.EXTRA_SUBJECT, "Experiment outcome");
-        i.putExtra(Intent.EXTRA_STREAM, path1);
-//        i.putExtra(Intent.EXTRA_STREAM, path2);
-//        i.putExtra(Intent.EXTRA_STREAM, path3);
         i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        i.putExtra(Intent.EXTRA_EMAIL, new String[]{"ne6080156@gs.ncku.edu.tw"});
+        i.putExtra(Intent.EXTRA_SUBJECT, "Experiment outcome");
+        i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
         try{
             this.startActivity(Intent.createChooser(i, "Send mail..."));
         }catch (Exception e){
-            Toast.makeText(MainActivity.this, path1.toString(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
         }
     }
 }
