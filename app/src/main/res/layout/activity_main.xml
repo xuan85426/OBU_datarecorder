@@ -5,155 +5,175 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity">
-
-    <TableLayout
-        android:id="@+id/tableLayout"
-        android:layout_width="365dp"
-        android:layout_height="645dp"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="1dp">
 
-        <TableRow
+        <ScrollView
+            android:id="@+id/scrollView3"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.988">
 
-            <TextView
-                android:id="@+id/lblOutput"
-                android:layout_width="181dp"
-                android:layout_height="130dp"
-                tools:layout_editor_absoluteX="20dp"
-                tools:layout_editor_absoluteY="34dp" />
-
-            <TextView
-                android:id="@+id/lblOutput2"
-                android:layout_width="181dp"
-                android:layout_height="130dp"
-                tools:layout_editor_absoluteX="217dp"
-                tools:layout_editor_absoluteY="30dp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/lblAcc"
-                android:layout_width="181dp"
-                android:layout_height="130dp"
-                tools:layout_editor_absoluteX="20dp"
-                tools:layout_editor_absoluteY="140dp" />
-
-            <TextView
-                android:id="@+id/lblgyro"
-                android:layout_width="181dp"
-                android:layout_height="130dp"
-                tools:layout_editor_absoluteX="185dp"
-                tools:layout_editor_absoluteY="140dp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/lblRecord"
-                android:layout_width="wrap_content"
-                android:layout_height="80dp"
-                android:layout_span="2"
-                android:scrollbars="vertical"
-                android:text="History of GPS\n"
-                tools:layout_editor_absoluteX="5dp"
-                tools:layout_editor_absoluteY="299dp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/lblRecord_acc"
-                android:layout_width="wrap_content"
-                android:layout_height="80dp"
-                android:layout_span="2"
-                android:scrollbars="vertical"
-                android:text="History of accelerator\n"
-                tools:layout_editor_absoluteX="20dp"
-                tools:layout_editor_absoluteY="405dp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/lblRecord_gyro"
-                android:layout_width="wrap_content"
-                android:layout_height="80dp"
-                android:layout_span="2"
-                android:scrollbars="vertical"
-                android:text="History of gyroscopes\n"
-                tools:layout_editor_absoluteX="20dp"
-                tools:layout_editor_absoluteY="520dp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:id="@+id/lblRecord_ori"
-                android:layout_width="wrap_content"
-                android:layout_height="80dp"
-                android:layout_span="2"
-                android:scrollbars="vertical"
-                android:text="History of orientation\n"
-                tools:layout_editor_absoluteX="20dp"
-                tools:layout_editor_absoluteY="520dp" />
-
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <Button
-                android:id="@+id/btn_copy"
+            <TableLayout
+                android:id="@+id/tableLayout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:enabled="true"
-                android:text="Send data"
-                tools:layout_editor_absoluteX="264dp"
-                tools:layout_editor_absoluteY="735dp" />
+                android:layout_gravity="center"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-            <Button
-                android:id="@+id/button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1HZ"
-                tools:layout_editor_absoluteX="21dp"
-                tools:layout_editor_absoluteY="736dp" />
-        </TableRow>
+                    <TextView
+                        android:id="@+id/lblGPS"
+                        android:layout_width="181dp"
+                        android:layout_height="100dp"
+                        tools:layout_editor_absoluteX="20dp"
+                        tools:layout_editor_absoluteY="34dp" />
 
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+                    <TextView
+                        android:id="@+id/lblori"
+                        android:layout_width="181dp"
+                        android:layout_height="100dp"
+                        tools:layout_editor_absoluteX="217dp"
+                        tools:layout_editor_absoluteY="30dp" />
+                </TableRow>
 
-        </TableRow>
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
 
-    </TableLayout>
+                    <TextView
+                        android:id="@+id/lblAcc"
+                        android:layout_width="181dp"
+                        android:layout_height="100dp"
+                        tools:layout_editor_absoluteX="20dp"
+                        tools:layout_editor_absoluteY="140dp" />
 
-    <Button
-        android:id="@+id/btn_start"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_span="2"
-        android:text="Start"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tableLayout" />
+                    <TextView
+                        android:id="@+id/lblgyro"
+                        android:layout_width="181dp"
+                        android:layout_height="100dp"
+                        tools:layout_editor_absoluteX="185dp"
+                        tools:layout_editor_absoluteY="140dp" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/lblRecord_gps"
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:layout_span="2"
+                        android:scrollbars="vertical"
+                        android:text="GPS_LOG\n"
+                        tools:layout_editor_absoluteX="5dp"
+                        tools:layout_editor_absoluteY="299dp" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/lblRecord_acc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:layout_span="2"
+                        android:scrollbars="vertical"
+                        android:text="ACCELERATOR_LOG\n"
+                        tools:layout_editor_absoluteX="20dp"
+                        tools:layout_editor_absoluteY="405dp" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/lblRecord_gyro"
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:layout_span="2"
+                        android:scrollbars="vertical"
+                        android:text="GYROSCOPES_LOG\n"
+                        tools:layout_editor_absoluteX="20dp"
+                        tools:layout_editor_absoluteY="520dp" />
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/lblRecord_ori"
+                        android:layout_width="wrap_content"
+                        android:layout_height="100dp"
+                        android:layout_span="2"
+                        android:scrollbars="vertical"
+                        android:text="ORIENTATION_LOG\n"
+                        tools:layout_editor_absoluteX="20dp"
+                        tools:layout_editor_absoluteY="520dp" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <Button
+                        android:id="@+id/btn_freq"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1HZ"
+                        tools:layout_editor_absoluteX="21dp"
+                        tools:layout_editor_absoluteY="736dp" />
+
+                    <Button
+                        android:id="@+id/btn_copy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="true"
+                        android:text="Send data"
+                        tools:layout_editor_absoluteX="264dp"
+                        tools:layout_editor_absoluteY="735dp" />
+
+                </TableRow>
+
+                <TableRow
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <Button
+                        android:id="@+id/btn_start"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_span="2"
+                        android:text="Start"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintHorizontal_bias="0.498"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/tableLayout" />
+                </TableRow>
+
+            </TableLayout>
+        </ScrollView>
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
