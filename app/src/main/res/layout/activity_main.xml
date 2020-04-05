@@ -40,14 +40,14 @@
                     <TextView
                         android:id="@+id/lblGPS"
                         android:layout_width="181dp"
-                        android:layout_height="100dp"
+                        android:layout_height="150dp"
                         tools:layout_editor_absoluteX="20dp"
                         tools:layout_editor_absoluteY="34dp" />
 
                     <TextView
                         android:id="@+id/lblori"
                         android:layout_width="181dp"
-                        android:layout_height="100dp"
+                        android:layout_height="150dp"
                         tools:layout_editor_absoluteX="217dp"
                         tools:layout_editor_absoluteY="30dp" />
                 </TableRow>
@@ -59,14 +59,14 @@
                     <TextView
                         android:id="@+id/lblAcc"
                         android:layout_width="181dp"
-                        android:layout_height="100dp"
+                        android:layout_height="150dp"
                         tools:layout_editor_absoluteX="20dp"
                         tools:layout_editor_absoluteY="140dp" />
 
                     <TextView
                         android:id="@+id/lblgyro"
                         android:layout_width="181dp"
-                        android:layout_height="100dp"
+                        android:layout_height="150dp"
                         tools:layout_editor_absoluteX="185dp"
                         tools:layout_editor_absoluteY="140dp" />
                 </TableRow>
@@ -78,7 +78,7 @@
                     <TextView
                         android:id="@+id/lblRecord_gps"
                         android:layout_width="wrap_content"
-                        android:layout_height="100dp"
+                        android:layout_height="50dp"
                         android:layout_span="2"
                         android:scrollbars="vertical"
                         android:text="GPS_LOG\n"
@@ -94,7 +94,7 @@
                     <TextView
                         android:id="@+id/lblRecord_acc"
                         android:layout_width="wrap_content"
-                        android:layout_height="100dp"
+                        android:layout_height="50dp"
                         android:layout_span="2"
                         android:scrollbars="vertical"
                         android:text="ACCELERATOR_LOG\n"
@@ -109,7 +109,7 @@
                     <TextView
                         android:id="@+id/lblRecord_gyro"
                         android:layout_width="wrap_content"
-                        android:layout_height="100dp"
+                        android:layout_height="50dp"
                         android:layout_span="2"
                         android:scrollbars="vertical"
                         android:text="GYROSCOPES_LOG\n"
@@ -124,7 +124,7 @@
                     <TextView
                         android:id="@+id/lblRecord_ori"
                         android:layout_width="wrap_content"
-                        android:layout_height="100dp"
+                        android:layout_height="50dp"
                         android:layout_span="2"
                         android:scrollbars="vertical"
                         android:text="ORIENTATION_LOG\n"
@@ -141,7 +141,7 @@
                         android:id="@+id/btn_freq"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1HZ"
+                        android:text="50HZ"
                         tools:layout_editor_absoluteX="21dp"
                         tools:layout_editor_absoluteY="736dp" />
 
@@ -164,8 +164,18 @@
                         android:id="@+id/btn_start"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_span="2"
                         android:text="Start"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintHorizontal_bias="0.498"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@+id/tableLayout" />
+                    <Button
+                        android:id="@+id/btn_clean"
+                        android:enabled="false"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Clean"
                         app:layout_constraintBottom_toBottomOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintHorizontal_bias="0.498"

@@ -60,6 +60,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Button button_copy;
     private Button button_start;
     private Button button_freq;
+    private Button button_clean;
 
     private LocationManager lc;
     private LocationListener ll;
@@ -68,14 +69,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private File output_acc;
     private File output_gyro;
     private File output_ori;
+    private File output_linear_acc;
 
     private Timer mTimer;
 
     private int timer_period;
 
+    private final Object lock = new Object();
+
+    // freq
+    private final String[] HZ= {"10HZ", "50HZ", "100HZ", "200HZ"};
+    private final int[] freq= {100, 20, 10, 5};
+    private int index = 0;
+
 
     // new container
-    private double lat, lng, speed, bear;
+    private float[] jerk = new float[3];
+    private float[] last_acc = new float[3];
+    private double lat, lng, speed, bear, alt;
     private final float[] accelerometerReading = new float[3];
     private final float[] gyroscopeReading = new float[3];
     private final float[] magnetometerReading  = new float[3];
@@ -84,7 +95,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final float[] linear_accelerometerReading = new float[3];
 
 
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
     private static String[] PERMISSIONS = {
             "android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -122,47 +132,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         button_copy = findViewById(R.id.btn_copy);
         button_start = findViewById(R.id.btn_start);
         button_freq = findViewById(R.id.btn_freq);
+        button_clean = findViewById(R.id.btn_clean);
         lc = (LocationManager)getSystemService(LOCATION_SERVICE);
 
+        current_gps.setMovementMethod(new ScrollingMovementMethod());
         history_acc_data.setMovementMethod(new ScrollingMovementMethod());
         history_gps_data.setMovementMethod(new ScrollingMovementMethod());
         history_gyro_data.setMovementMethod(new ScrollingMovementMethod());
         history_ori_data.setMovementMethod(new ScrollingMovementMethod());
 
-        timer_period = 1000;
+        button_freq.setText(HZ[index]);
+        timer_period = freq[index];
 
 
         verifyALLPermissions( this );
 
         // dir & file init
-        String root = getExternalFilesDir(null).toString();
-        File dir = new File(root + File.separator + "Experiment");
-        if(!dir.mkdirs() && !dir.exists()){
-            Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
-        }
-        String filePath_gps = dir + File.separator + "gps.txt";
-        String filePath_acc = dir + File.separator + "acc.txt";
-        String filePath_gyro = dir + File.separator + "gyro.txt";
-        String filePath_ori = dir + File.separator + "ori.txt";
+        setNewFile();
 
-        try{
-            output_acc = new File(filePath_acc);
-            output_gps = new File(filePath_gps);
-            output_gyro = new File(filePath_gyro);
-            output_ori = new File(filePath_ori);
-            if(output_acc.exists() || output_gyro.exists() || output_gps.exists()){
-                output_gps.delete();
-                output_acc.delete();
-                output_gyro.delete();
-                output_ori.delete();
+
+        current_gps.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                current_gps.getParent().requestDisallowInterceptTouchEvent(true);
+                return false;
             }
-            output_acc.createNewFile();
-            output_gps.createNewFile();
-            output_gyro.createNewFile();
-            output_ori.createNewFile();
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-        }
+        });
 
         history_gps_data.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -200,29 +195,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         button_copy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendEmailWithFile();
+                sendOutFile();
             }
         });
 
         button_freq.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switch (timer_period){
-                    case 100:
-                        button_freq.setText("1HZ");
-                        timer_period = 1000;
-                        break;
-                    case 500:
-                        button_freq.setText("10HZ");
-                        timer_period = 100;
-                        break;
-                    case 1000:
-                        button_freq.setText("5HZ");
-                        timer_period = 500;
-                        break;
-                    default:
-                        break;
-                }
+                index = (index += 1) % 3;
+                button_freq.setText(HZ[index]);
+                timer_period = freq[index];
+            }
+        });
+
+        button_clean.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                button_clean.setEnabled(false);
+
+                // dir & file init
+                setNewFile();
+                current_gps.setText("");
+                accelerometers.setText("");
+                gyroscopes.setText("");
+                orientation.setText("");
+
+                history_gps_data.setText("GPS_LOG\n");
+                history_acc_data.setText("ACCELERATOR_LOG\n");
+                history_gyro_data.setText("GYROSCOPES_LOG\n");
+                history_ori_data.setText("ORIENTATION_LOG\n");
             }
         });
 
@@ -241,10 +242,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
                     Sensor gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
                     Sensor magneticField = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-                    sensorManager.registerListener(MainActivity.this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_FASTEST);
-                    sensorManager.registerListener(MainActivity.this, linear_accelerometer, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_FASTEST);
-                    sensorManager.registerListener(MainActivity.this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_FASTEST);
-                    sensorManager.registerListener(MainActivity.this, magneticField, SensorManager.SENSOR_DELAY_UI, SensorManager.SENSOR_DELAY_FASTEST);
+                    sensorManager.registerListener(MainActivity.this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+                    sensorManager.registerListener(MainActivity.this, linear_accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+                    sensorManager.registerListener(MainActivity.this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+                    sensorManager.registerListener(MainActivity.this, magneticField, SensorManager.SENSOR_DELAY_FASTEST);
 
                     // register gps
                     ll = new MyLocationListener();
@@ -264,6 +265,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 }
                 else if(temp.equals("Stop")){
                     button_freq.setEnabled(true);
+                    button_clean.setEnabled(true);
                     // unregister sensor
                     sensorManager.unregisterListener(MainActivity.this);
                     current_gps.setText("");
@@ -285,6 +287,37 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
+    private void setNewFile(){
+        String root = getExternalFilesDir(null).toString();
+        File dir = new File(root + File.separator + "Experiment");
+        if(!dir.mkdirs() && !dir.exists())
+            Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
+
+
+        final long timestamp = Calendar.getInstance().getTimeInMillis();
+        String filePath_gps = dir + File.separator + timestamp + "_gps.txt";
+        String filePath_acc = dir + File.separator + timestamp + "_acc.txt";
+        String filePath_gyro = dir + File.separator + timestamp + "_gyro.txt";
+        String filePath_ori = dir + File.separator + timestamp + "_ori.txt";
+        String filePath_linear_acc = dir + File.separator + timestamp + "_linear_acc.txt";
+
+        try{
+            output_acc = new File(filePath_acc);
+            output_gps = new File(filePath_gps);
+            output_gyro = new File(filePath_gyro);
+            output_ori = new File(filePath_ori);
+            output_linear_acc = new File(filePath_linear_acc);
+
+            output_acc.createNewFile();
+            output_gps.createNewFile();
+            output_gyro.createNewFile();
+            output_ori.createNewFile();
+            output_linear_acc.createNewFile();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void setTimerTask() {
         mTimer.schedule(new TimerTask() {
             @Override
@@ -292,40 +325,47 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 runOnUiThread(new TimerTask() {
                     @Override
                     public void run() {
-                        // updating gps info
-                        long round_time = System.currentTimeMillis();
-                        String values = "時間: " + round_time + "\n經度: " + lat + "\n緯度: " + lng + "\n速度: " + speed + " 方向: " + bear;
-                        String temp = round_time + " " + lat + " " + lng + " " + speed + " " + bear + "\n";
-                        current_gps.setText("Current information:\n" + values);
-                        history_gps_data.append(temp);
-                        writeToFile(temp, "gps");
+                        // get lock
+                        synchronized (lock){
+                            // updating gps info
+                            long round_time = System.currentTimeMillis();
+                            long temp_time = round_time / 1000;
+                            String values = "時間: " + temp_time + "\n經度: " + lat + "\n緯度: " + lng + "\n速度: " + speed + "\n方向: " + bear + "\n高度: " + alt;
+                            String temp = round_time + " " + lat + " " + lng + " " + speed + " " + bear + " "+ alt + "\n";
+                            current_gps.setText("Current information:\n" + values);
+                            history_gps_data.append(temp);
+                            writeToFile(temp, "gps");
 
-                        values = "X-axis: " + linear_accelerometerReading[0] + "\nY-axis: " + linear_accelerometerReading[1] + "\nZ-axis: " + linear_accelerometerReading[2];
-                        // String date = new SimpleDateFormat("HH:mm:ss:SSS").format(new Date());
-                        temp = round_time + " " + linear_accelerometerReading[0] + " " + linear_accelerometerReading[1] + " " + linear_accelerometerReading[2] + "\n";
-                        //updating acc info
-                        accelerometers.setText("Accelerometers\n" + values);
-                        history_acc_data.append(temp);
-                        writeToFile(temp, "acc");
+                            values = "X-axis: " + accelerometerReading[0] + "\nY-axis: " + accelerometerReading[1] + "\nZ-axis: " + accelerometerReading[2];
+                            // String date = new SimpleDateFormat("HH:mm:ss:SSS").format(new Date());
+                            temp = round_time + " " + accelerometerReading[0] + " " + accelerometerReading[1] + " " + accelerometerReading[2] + "\n";
+                            //updating acc info
+                            accelerometers.setText("Accelerometers\n" + values);
+                            history_acc_data.append(temp);
+                            writeToFile(temp, "acc");
 
-                        values = "X-axis: " + gyroscopeReading[0] + "\nY-axis: " + gyroscopeReading[1] + "\nZ-axis: " + gyroscopeReading[2];
-                        temp = round_time + " " + gyroscopeReading[0] + " " + gyroscopeReading[1] + " " + gyroscopeReading[2] + "\n";
-                        gyroscopes.setText("Gyroscopes\n" + values);
-                        history_gyro_data.append(temp);
-                        writeToFile(temp, "gyro");
+                            temp = round_time + " " + linear_accelerometerReading[0] + " " + linear_accelerometerReading[1] + " " + linear_accelerometerReading[2] + "\n";
+                            writeToFile(temp, "linear_acc");
 
-                        updateOrientationAngles();
-                        values = "Azimuth: " + orientationAngles[0] + "\nPitch: " + orientationAngles[1] + "\nRoll: " + orientationAngles[2] + "\n";
-                        temp = round_time + " " + orientationAngles[0] + " " + orientationAngles[1] + " " + orientationAngles[2] + "\n";
-                        orientation.setText("Orientation\n" + values);
-                        history_ori_data.append(temp);
-                        writeToFile(temp, "ori");
+                            values = "X-axis: " + gyroscopeReading[0] + "\nY-axis: " + gyroscopeReading[1] + "\nZ-axis: " + gyroscopeReading[2];
+                            temp = round_time + " " + gyroscopeReading[0] + " " + gyroscopeReading[1] + " " + gyroscopeReading[2] + "\n";
+                            gyroscopes.setText("Gyroscopes\n" + values);
+                            history_gyro_data.append(temp);
+                            writeToFile(temp, "gyro");
 
+                            updateOrientationAngles();
+                            values = "Azimuth: " + orientationAngles[0] + "\nPitch: " + orientationAngles[1] + "\nRoll: " + orientationAngles[2] + "\n";
+                            temp = round_time + " " + orientationAngles[0] + " " + orientationAngles[1] + " " + orientationAngles[2] + "\n";
+                            orientation.setText("Orientation\n" + values);
+                            history_ori_data.append(temp);
+                            writeToFile(temp, "ori");
+                        }
                     }
                 });
             }
         }, 1000, timer_period);
     }
+
 
     @Override
     // After get the permissions
@@ -346,25 +386,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onDestroy(){
         super.onDestroy();
-        output_gps.delete();
-        output_acc.delete();
-        output_gyro.delete();
         mTimer.cancel();
     }
     @Override
     // sensor function
     public void onSensorChanged(SensorEvent event){
-        if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-            System.arraycopy(event.values, 0, linear_accelerometerReading, 0, linear_accelerometerReading.length);
-        }
-        else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
-            System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
-        }
-        else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
-            System.arraycopy(event.values, 0, gyroscopeReading, 0, gyroscopeReading.length);
-        }
-        else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
-            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+        //get lock
+        synchronized (lock){
+            switch (event.sensor.getType()){
+                case Sensor.TYPE_LINEAR_ACCELERATION:
+                    System.arraycopy(event.values, 0, linear_accelerometerReading, 0, linear_accelerometerReading.length);
+                    break;
+                case Sensor.TYPE_ACCELEROMETER:
+                    System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    System.arraycopy(event.values, 0, gyroscopeReading, 0, gyroscopeReading.length);
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+                    break;
+                default:
+                    break;
+            }
+//            if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
+//                System.arraycopy(event.values, 0, linear_accelerometerReading, 0, linear_accelerometerReading.length);
+//            }
+//            else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+//                System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
+//            }
+//            else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
+//                System.arraycopy(event.values, 0, gyroscopeReading, 0, gyroscopeReading.length);
+//            }
+//            else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
+//                System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+//            }
         }
     }
     public void updateOrientationAngles() {
@@ -379,10 +435,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         public void onLocationChanged(Location current){
             // String date = new SimpleDateFormat("HH:mm:ss:SSS").format(new Date());
             if(current != null){
-                lng = current.getLongitude();
-                lat = current.getLatitude();
-                bear =  current.getBearing();
-                speed = current.getSpeed() * 3.6;
+                synchronized (lock){
+                    alt = current.getAltitude();
+                    lng = current.getLongitude();
+                    lat = current.getLatitude();
+                    bear =  current.getBearing();
+                    speed = current.getSpeed() * 3.6;
+                }
             }
         }
         public void onProviderDisabled(String provider){}
@@ -415,6 +474,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     bufferedWriter.write(data);
                     bufferedWriter.close();
                     break;
+                case "linear_acc":
+                    bufferedWriter = new BufferedWriter(new FileWriter(output_linear_acc, true));
+                    bufferedWriter.write(data);
+                    bufferedWriter.close();
                 default:
                     break;
             }
@@ -423,12 +486,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    private void sendEmailWithFile(){
+    private void sendOutFile(){
         ArrayList<Uri> uris = new ArrayList<>();
         List<Uri> filePaths = Arrays.asList(FileProvider.getUriForFile(this, getPackageName() + ".provider", output_gps),
                 FileProvider.getUriForFile(this, getPackageName() + ".provider", output_acc),
                 FileProvider.getUriForFile(this, getPackageName() + ".provider", output_gyro),
-                FileProvider.getUriForFile(this, getPackageName() + ".provider", output_ori));
+                FileProvider.getUriForFile(this, getPackageName() + ".provider", output_ori),
+                FileProvider.getUriForFile(this, getPackageName() + ".provider", output_linear_acc));
         for(Uri uri: filePaths)
             uris.add(uri);
         Intent i = new Intent(Intent.ACTION_SEND_MULTIPLE);
