@@ -183,7 +183,8 @@
                     android:layout_height="wrap_content"
                     android:layout_span="2"
                     android:text="Camera"
-                    android:onClick="captureVideo"/>
+                    android:onClick="captureVideo"
+                    android:enabled="false" />
             </TableRow>
         </TableLayout>
     </ScrollView>
