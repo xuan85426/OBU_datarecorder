@@ -1,14 +1,12 @@
-package com.example.obu_v2;
+package com.example.obu_data_recorder;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -21,7 +19,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Settings;
+import android.provider.MediaStore;
 import android.text.method.ScrollingMovementMethod;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,17 +27,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.sql.Time;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -57,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private TextView history_gyro_data;
     private TextView orientation;
     private TextView history_ori_data;
-    private Button button_copy;
+    private Button button_send;
     private Button button_start;
     private Button button_freq;
     private Button button_clean;
@@ -70,6 +62,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private File output_gyro;
     private File output_ori;
     private File output_linear_acc;
+
+    private static int VIDEO_REQUEST = 101;
+    private Uri videoUri;
 
     private Timer mTimer;
 
@@ -84,8 +79,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
     // new container
-    private float[] jerk = new float[3];
-    private float[] last_acc = new float[3];
     private double lat, lng, speed, bear, alt;
     private final float[] accelerometerReading = new float[3];
     private final float[] gyroscopeReading = new float[3];
@@ -121,15 +114,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        current_gps = findViewById(R.id.lblGPS);
-        history_gps_data = findViewById(R.id.lblRecord_gps);
-        accelerometers = findViewById(R.id.lblAcc);
-        history_acc_data = findViewById(R.id.lblRecord_acc);
-        gyroscopes = findViewById(R.id.lblgyro);
-        history_gyro_data = findViewById(R.id.lblRecord_gyro);
-        orientation = findViewById(R.id.lblori);
-        history_ori_data = findViewById(R.id.lblRecord_ori);
-        button_copy = findViewById(R.id.btn_copy);
+        current_gps = findViewById(R.id.lbl_GPS);
+        history_gps_data = findViewById(R.id.lbl_Record_gps);
+        accelerometers = findViewById(R.id.lbl_Acc);
+        history_acc_data = findViewById(R.id.lbl_Record_acc);
+        gyroscopes = findViewById(R.id.lbl_Gyro);
+        history_gyro_data = findViewById(R.id.lbl_Record_gyro);
+        orientation = findViewById(R.id.lbl_Ori);
+        history_ori_data = findViewById(R.id.lbl_Record_ori);
+        button_send = findViewById(R.id.btn_send);
         button_start = findViewById(R.id.btn_start);
         button_freq = findViewById(R.id.btn_freq);
         button_clean = findViewById(R.id.btn_clean);
@@ -192,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
 
-        button_copy.setOnClickListener(new View.OnClickListener() {
+        button_send.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 sendOutFile();
@@ -257,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         // Log.e("what", "GPS error" + sex.getMessage());
                         Toast.makeText(MainActivity.this, "Cannot get gps", Toast.LENGTH_SHORT).show();
                     }
-                    button_copy.setEnabled(false);
+                    button_send.setEnabled(false);
                     button_start.setText("Stop");
 
                     mTimer = new Timer();
@@ -276,7 +269,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     // unregister sensor
                     lc.removeUpdates(ll);
 
-                    button_copy.setEnabled(true);
+                    button_send.setEnabled(true);
                     button_start.setText("Start");
                     mTimer.cancel();
                 }
@@ -409,18 +402,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 default:
                     break;
             }
-//            if(event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-//                System.arraycopy(event.values, 0, linear_accelerometerReading, 0, linear_accelerometerReading.length);
-//            }
-//            else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
-//                System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.length);
-//            }
-//            else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
-//                System.arraycopy(event.values, 0, gyroscopeReading, 0, gyroscopeReading.length);
-//            }
-//            else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
-//                System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
-//            }
         }
     }
     public void updateOrientationAngles() {
@@ -429,6 +410,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SensorManager.getOrientation(rotationMatrix, orientationAngles);
     }
     public void onAccuracyChanged(Sensor sensor, int accuracy){ }
+
+    public void captureVideo(View view) {
+        Intent videoIntent = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
+        if(videoIntent.resolveActivity(getPackageManager()) != null){
+            startActivityForResult(videoIntent, VIDEO_REQUEST);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if(requestCode == VIDEO_REQUEST && resultCode == RESULT_OK){
+            videoUri = data.getData();
+        }
+    }
 
     private class MyLocationListener implements LocationListener {
         @SuppressLint("SetTextI18n")

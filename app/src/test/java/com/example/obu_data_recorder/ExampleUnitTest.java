@@ -1,4 +1,4 @@
-package com.example.obu_v2;
+package com.example.obu_data_recorder;
 
 import org.junit.Test;
 

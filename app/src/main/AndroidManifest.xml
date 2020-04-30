@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.obu_v2"
+    package="com.example.obu_data_recorder"
     android:versionCode="1"
     android:versionName="0.2">
 
+    <uses-feature
+        android:name="android.hardware.camera2"
+        android:required="true" />
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -25,7 +28,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths"/>
         </provider>
-        <activity android:name=".MainActivity">
+        <activity android:name="com.example.obu_data_recorder.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

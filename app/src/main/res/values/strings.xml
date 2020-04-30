@@ -1,3 +1,10 @@
 <resources>
-    <string name="app_name">OBU_v2</string>
+    <string name="app_name">OBU_data_recorder</string>
+    <string name="accelerator_log_n">ACCELERATOR_LOG</string>
+    <string name="gyroscopes_log_n">GYROSCOPES_LOG</string>
+    <string name="orientation_log_n">ORIENTATION_LOG</string>
+    <string name="send_data">Send data</string>
+    <string name="start">Start</string>
+    <string name="clean">Clean</string>
+    <string name="gps_log_n">GPS_LOG</string>
 </resources>
