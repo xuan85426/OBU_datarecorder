@@ -92,12 +92,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             "android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE",
             "android.permission.ACCESS_COARSE_LOCATION",
-            "android.permission.ACCESS_FINE_LOCATION"};
+            "android.permission.ACCESS_FINE_LOCATION"
+    };
 
     public static void verifyALLPermissions(Activity activity) {
         int PERMISSIONS_ALL = 1;
         try {
-
             for(String permission: PERMISSIONS){
                 if(ActivityCompat.checkSelfPermission(activity, permission) != PackageManager.PERMISSION_GRANTED){
                     ActivityCompat.requestPermissions(activity, PERMISSIONS, PERMISSIONS_ALL);
@@ -110,6 +110,98 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
     @SuppressLint("ClickableViewAccessibility")
+
+    private void setNewFile(){
+        String root = getExternalFilesDir(null).toString();
+        File dir = new File(root + File.separator + "Experiment");
+        if(!dir.mkdirs() && !dir.exists())
+            Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
+
+
+        final long timestamp = Calendar.getInstance().getTimeInMillis();
+        String filePath_gps = dir + File.separator + timestamp + "_gps.txt";
+        String filePath_acc = dir + File.separator + timestamp + "_acc.txt";
+        String filePath_gyro = dir + File.separator + timestamp + "_gyro.txt";
+        String filePath_ori = dir + File.separator + timestamp + "_ori.txt";
+        String filePath_linear_acc = dir + File.separator + timestamp + "_linear_acc.txt";
+
+        try{
+            output_acc = new File(filePath_acc);
+            output_gps = new File(filePath_gps);
+            output_gyro = new File(filePath_gyro);
+            output_ori = new File(filePath_ori);
+            output_linear_acc = new File(filePath_linear_acc);
+
+            output_acc.createNewFile();
+            output_gps.createNewFile();
+            output_gyro.createNewFile();
+            output_ori.createNewFile();
+            output_linear_acc.createNewFile();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void setTimerTask() {
+        mTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new TimerTask() {
+                    @Override
+                    public void run() {
+                    // get lock
+                    synchronized (lock){
+                        // updating gps info
+                        long round_time = System.currentTimeMillis();
+                        long temp_time = round_time / 1000;
+                        String values = "時間: " + temp_time + "\n經度: " + lat + "\n緯度: " + lng + "\n速度: " + speed + "\n方向: " + bear + "\n高度: " + alt;
+                        String temp = round_time + " " + lat + " " + lng + " " + speed + " " + bear + " "+ alt + "\n";
+                        current_gps.setText("Current information:\n" + values);
+                        history_gps_data.append(temp);
+                        writeToFile(temp, "gps");
+
+                        values = "X-axis: " + accelerometerReading[0] + "\nY-axis: " + accelerometerReading[1] + "\nZ-axis: " + accelerometerReading[2];
+                        // String date = new SimpleDateFormat("HH:mm:ss:SSS").format(new Date());
+                        temp = round_time + " " + accelerometerReading[0] + " " + accelerometerReading[1] + " " + accelerometerReading[2] + "\n";
+                        //updating acc info
+                        accelerometers.setText("Accelerometers\n" + values);
+                        history_acc_data.append(temp);
+                        writeToFile(temp, "acc");
+
+                        temp = round_time + " " + linear_accelerometerReading[0] + " " + linear_accelerometerReading[1] + " " + linear_accelerometerReading[2] + "\n";
+                        writeToFile(temp, "linear_acc");
+
+                        values = "X-axis: " + gyroscopeReading[0] + "\nY-axis: " + gyroscopeReading[1] + "\nZ-axis: " + gyroscopeReading[2];
+                        temp = round_time + " " + gyroscopeReading[0] + " " + gyroscopeReading[1] + " " + gyroscopeReading[2] + "\n";
+                        gyroscopes.setText("Gyroscopes\n" + values);
+                        history_gyro_data.append(temp);
+                        writeToFile(temp, "gyro");
+
+                        updateOrientationAngles();
+                        values = "Azimuth: " + orientationAngles[0] + "\nPitch: " + orientationAngles[1] + "\nRoll: " + orientationAngles[2] + "\n";
+                        temp = round_time + " " + orientationAngles[0] + " " + orientationAngles[1] + " " + orientationAngles[2] + "\n";
+                        orientation.setText("Orientation\n" + values);
+                        history_ori_data.append(temp);
+                        writeToFile(temp, "ori");
+                    }
+                    }
+                });
+            }
+        }, 1000, timer_period);
+    }
+
+    @Override
+    // After get the permissions
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResult){
+        if(requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION){
+            if(grantResult[0] == PackageManager.PERMISSION_GRANTED){
+                Toast.makeText(this, "取得權限取得GPS資訊", Toast.LENGTH_SHORT).show();
+            }
+            else{
+                Toast.makeText(this, "Cannot", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -142,7 +234,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // dir & file init
         setNewFile();
-
 
         current_gps.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -243,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     // register gps
                     ll = new MyLocationListener();
                     try{
-                        // 註冊listener
+                        // register listener
                         lc.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, ll);
                         lc.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, minTime, minDistance, ll);
                     }catch (SecurityException sex){
@@ -280,107 +371,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         });
     }
 
-    private void setNewFile(){
-        String root = getExternalFilesDir(null).toString();
-        File dir = new File(root + File.separator + "Experiment");
-        if(!dir.mkdirs() && !dir.exists())
-            Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
-
-
-        final long timestamp = Calendar.getInstance().getTimeInMillis();
-        String filePath_gps = dir + File.separator + timestamp + "_gps.txt";
-        String filePath_acc = dir + File.separator + timestamp + "_acc.txt";
-        String filePath_gyro = dir + File.separator + timestamp + "_gyro.txt";
-        String filePath_ori = dir + File.separator + timestamp + "_ori.txt";
-        String filePath_linear_acc = dir + File.separator + timestamp + "_linear_acc.txt";
-
-        try{
-            output_acc = new File(filePath_acc);
-            output_gps = new File(filePath_gps);
-            output_gyro = new File(filePath_gyro);
-            output_ori = new File(filePath_ori);
-            output_linear_acc = new File(filePath_linear_acc);
-
-            output_acc.createNewFile();
-            output_gps.createNewFile();
-            output_gyro.createNewFile();
-            output_ori.createNewFile();
-            output_linear_acc.createNewFile();
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, e.toString(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void setTimerTask() {
-        mTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                runOnUiThread(new TimerTask() {
-                    @Override
-                    public void run() {
-                        // get lock
-                        synchronized (lock){
-                            // updating gps info
-                            long round_time = System.currentTimeMillis();
-                            long temp_time = round_time / 1000;
-                            String values = "時間: " + temp_time + "\n經度: " + lat + "\n緯度: " + lng + "\n速度: " + speed + "\n方向: " + bear + "\n高度: " + alt;
-                            String temp = round_time + " " + lat + " " + lng + " " + speed + " " + bear + " "+ alt + "\n";
-                            current_gps.setText("Current information:\n" + values);
-                            history_gps_data.append(temp);
-                            writeToFile(temp, "gps");
-
-                            values = "X-axis: " + accelerometerReading[0] + "\nY-axis: " + accelerometerReading[1] + "\nZ-axis: " + accelerometerReading[2];
-                            // String date = new SimpleDateFormat("HH:mm:ss:SSS").format(new Date());
-                            temp = round_time + " " + accelerometerReading[0] + " " + accelerometerReading[1] + " " + accelerometerReading[2] + "\n";
-                            //updating acc info
-                            accelerometers.setText("Accelerometers\n" + values);
-                            history_acc_data.append(temp);
-                            writeToFile(temp, "acc");
-
-                            temp = round_time + " " + linear_accelerometerReading[0] + " " + linear_accelerometerReading[1] + " " + linear_accelerometerReading[2] + "\n";
-                            writeToFile(temp, "linear_acc");
-
-                            values = "X-axis: " + gyroscopeReading[0] + "\nY-axis: " + gyroscopeReading[1] + "\nZ-axis: " + gyroscopeReading[2];
-                            temp = round_time + " " + gyroscopeReading[0] + " " + gyroscopeReading[1] + " " + gyroscopeReading[2] + "\n";
-                            gyroscopes.setText("Gyroscopes\n" + values);
-                            history_gyro_data.append(temp);
-                            writeToFile(temp, "gyro");
-
-                            updateOrientationAngles();
-                            values = "Azimuth: " + orientationAngles[0] + "\nPitch: " + orientationAngles[1] + "\nRoll: " + orientationAngles[2] + "\n";
-                            temp = round_time + " " + orientationAngles[0] + " " + orientationAngles[1] + " " + orientationAngles[2] + "\n";
-                            orientation.setText("Orientation\n" + values);
-                            history_ori_data.append(temp);
-                            writeToFile(temp, "ori");
-                        }
-                    }
-                });
-            }
-        }, 1000, timer_period);
-    }
-
-
-    @Override
-    // After get the permissions
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResult){
-        if(requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION){
-            if(grantResult[0] == PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(this, "取得權限取得GPS資訊", Toast.LENGTH_SHORT).show();
-            }
-            else{
-                Toast.makeText(this, "Cannot", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
     @Override
     protected void onResume(){ super.onResume(); }
+
     @Override
     protected void onPause(){ super.onPause(); }
+
     @Override
     protected void onDestroy(){
         super.onDestroy();
         mTimer.cancel();
     }
+
     @Override
     // sensor function
     public void onSensorChanged(SensorEvent event){
