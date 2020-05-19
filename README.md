@@ -1,4 +1,8 @@
-# OBU_datarecorder  
+---
+title: APP datarecorder
+tags: OBU, APP
+---
+# Datarecorder  
 A data recorder for motorcycle  
 ## apk & sample data
 Requirtment  
@@ -22,6 +26,8 @@ Sample data [here](https://drive.google.com/drive/folders/1tL4g6NGuaKE_Op1P9AoYp
 - Azimuth  
 - Pitch  
 - Roll  
+- ![](https://i.imgur.com/zLCxS6h.png)  
+
 ### Accelerometers & Gyroscopers  
 - X-axis  
 - Y-axis  
