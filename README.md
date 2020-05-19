@@ -2,7 +2,7 @@
 title: APP datarecorder
 tags: OBU, APP
 ---
-# OBU_datarecorder  
+# Datarecorder  
 A data recorder for motorcycle  
 ## apk & sample data
 Requirtment  
