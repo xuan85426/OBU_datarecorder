@@ -10,7 +10,7 @@ Requirtment
 - minSDKVersion 24  
 - NCKU gs account for download  
 
-Download [here](https://drive.google.com/file/d/1SZgidTb2Q80iOQYNG5AGS45iKCstPV3W/view?usp=sharing)  
+Download [here](https://drive.google.com/file/d/1sc2ZphoRV_FO-z2DUtUWEE8nx_0tzAmX/view?usp=sharing)  
 Sample data [here](https://drive.google.com/drive/folders/1tL4g6NGuaKE_Op1P9AoYpZd_CbNQA561?usp=sharing)
 
 
