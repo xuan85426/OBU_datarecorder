@@ -13,7 +13,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.icu.util.Calendar;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -118,7 +117,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             Toast.makeText(MainActivity.this, "Failed to make dir", Toast.LENGTH_SHORT).show();
 
 
-        final long timestamp = Calendar.getInstance().getTimeInMillis();
+//        final long timestamp = Calendar.getInstance().getTimeInMillis();
+        final long timestamp = System.currentTimeMillis();
         String filePath_gps = dir + File.separator + timestamp + "_gps.txt";
         String filePath_acc = dir + File.separator + timestamp + "_acc.txt";
         String filePath_gyro = dir + File.separator + timestamp + "_gyro.txt";
